@@ -32,7 +32,7 @@ liftImpure a = do
 liftPure :: forall a. ST Global a -> Mermaid a
 liftPure = liftF <<< LiftPure
 
-runImpure :: Mermaid Unit -> Effect Unit
+runImpure :: forall a. Mermaid a -> Effect a
 runImpure = runFreeM impureN
   where
   impureN :: MermaidF _ -> Effect _
@@ -41,7 +41,7 @@ runImpure = runFreeM impureN
     LiftImpure a -> a
     LiftPure a -> toEffect a
 
-runPure :: Mermaid Unit -> Effect Unit
+runPure :: forall a. Mermaid a -> Effect a
 runPure = runFreeM pureN
   where
   pureN :: MermaidF _ -> Effect _
