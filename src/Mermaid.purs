@@ -1,7 +1,4 @@
-module Mermaid
-  ( module Mermaid
-  , module Mermaid.Do
-  ) where
+module Mermaid where
 
 import Prelude
 
@@ -10,7 +7,6 @@ import Control.Monad.ST (ST)
 import Control.Monad.ST.Global (Global, toEffect)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
-import Mermaid.Do (bind, discard, pure) as Mermaid.Do
 import Partial.Unsafe (unsafeCrashWith)
 
 data MermaidF a
