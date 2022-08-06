@@ -1,4 +1,7 @@
-module Mermaid where
+module Mermaid
+  ( module Mermaid
+  , module Mermaid.Do
+  ) where
 
 import Prelude
 
@@ -6,6 +9,7 @@ import Control.Monad.Free (Free, liftF, runFreeM)
 import Control.Monad.ST (ST)
 import Control.Monad.ST.Global (Global, toEffect)
 import Effect (Effect)
+import Mermaid.Do (bind, discard, pure) as Mermaid.Do
 
 data MermaidF a
   = LiftImpure (Effect a)

@@ -11,18 +11,18 @@ import Effect.Class (liftEffect)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
 import Mermaid (Mermaid, liftImpure, liftPure, runImpure, runPure)
+import Mermaid as Mermaid
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 
 pureImpure :: STRef Global Int -> Ref Int -> Mermaid Unit
-pureImpure stRef efRef = do
-  _ <- liftPure do
-    void $ STRef.write 10000 stRef
-  _ <- liftImpure do
+pureImpure stRef efRef = Mermaid.do
+  liftPure do
+    STRef.write 10000 stRef
+  liftImpure do
     Ref.write 10000 efRef
-  pure unit
 
 main :: Effect Unit
 main = launchAff_ $ runSpec [ consoleReporter ] do
