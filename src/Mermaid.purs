@@ -8,6 +8,7 @@ import Prelude
 import Control.Monad.Free (Free, liftF, runFreeM)
 import Control.Monad.ST (ST)
 import Control.Monad.ST.Global (Global, toEffect)
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Mermaid.Do (bind, discard, pure) as Mermaid.Do
 import Partial.Unsafe (unsafeCrashWith)
@@ -28,6 +29,14 @@ liftImpure a = do
     liftF $ LiftImpure a
   else
     liftF $ LiftPure $ pure mempty
+
+liftImpureMaybe :: forall a. Effect a -> Mermaid (Maybe a)
+liftImpureMaybe a = do
+  isEffectful <- liftF $ IsEffectful identity
+  if isEffectful then
+    liftF $ LiftImpure $ Just <$> a
+  else
+    liftF $ LiftPure $ pure Nothing
 
 liftPure :: forall a. ST Global a -> Mermaid a
 liftPure = liftF <<< LiftPure
