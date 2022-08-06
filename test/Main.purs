@@ -19,10 +19,10 @@ import Test.Spec.Runner (runSpec)
 
 pureImpure :: STRef Global Int -> Ref Int -> Mermaid Unit
 pureImpure stRef efRef = Mermaid.do
-  liftPure do
-    STRef.write 10000 stRef
   liftImpure do
     Ref.write 10000 efRef
+  liftPure do
+    void $ STRef.write 10000 stRef
 
 main :: Effect Unit
 main = launchAff_ $ runSpec [ consoleReporter ] do
