@@ -1,5 +1,7 @@
 {
     "scripts": {
+        "postinstall": "spago install",
+        "build": "spago build",
         "test": "spago -x tests.dhall test"
     }
 }
