@@ -4,7 +4,7 @@ import Prelude
 
 import Control.Monad.Identity.Trans (mapIdentityT, runIdentityT)
 import Control.Monad.ST (ST)
-import Control.Monad.ST.Global (Global, toEffect)
+import Control.Monad.ST.Global (toEffect)
 import Control.Monad.ST.Internal (STRef)
 import Control.Monad.ST.Internal as STRef
 import Control.Monad.State.Trans (class MonadState, evalStateT, get, mapStateT, modify_)
@@ -20,7 +20,7 @@ import Test.Spec.Assertions (shouldEqual)
 import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 
-pureImpure :: forall t. MonadTrans t => Ref Boolean -> STRef Global Boolean -> MermaidT t Unit
+pureImpure :: forall t r. MonadTrans t => Ref Boolean -> STRef r Boolean -> MermaidT t r Unit
 pureImpure efRef stRef = do
   liftImpureT $ lift do
     Ref.write true efRef
@@ -28,10 +28,10 @@ pureImpure efRef stRef = do
     void $ STRef.write true stRef
 
 withTransmute
-  :: forall t
+  :: forall t r
    . MonadState Int (t Effect)
-  => MonadState Int (t (ST Global))
-  => MermaidT t { a :: Int, b :: Int }
+  => MonadState Int (t (ST r))
+  => MermaidT t r { a :: Int, b :: Int }
 withTransmute = do
   liftImpureT do
     modify_ (_ + 10)
