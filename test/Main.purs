@@ -3,6 +3,8 @@ module Test.Main where
 import Prelude
 
 import Control.Monad.Identity.Trans (mapIdentityT, runIdentityT)
+import Control.Monad.Reader (runReader)
+import Control.Monad.Reader.Trans (runReaderT)
 import Control.Monad.ST (ST)
 import Control.Monad.ST.Global (toEffect)
 import Control.Monad.ST.Internal (STRef)
@@ -69,7 +71,8 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
       efRef <- Ref.new false
       stRef <- toEffect $ STRef.new false
 
-      runIdentityT $ runImpureT (mapIdentityT toEffect) $ pureImpure efRef stRef
+      -- TODO: MFunctor IdentityT
+      flip runReaderT unit $ runImpureT $ pureImpure efRef stRef
 
       stVal <- toEffect $ STRef.read stRef
       efVal <- Ref.read efRef
@@ -77,6 +80,6 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
       stVal `shouldEqual` true
       efVal `shouldEqual` true
     it "propagates state" $ liftEffect do
-      { a, b } <- flip evalStateT 0 $ runImpureT (mapStateT toEffect) withTransmute
+      { a, b } <- flip evalStateT 0 $ runImpureT withTransmute
       a `shouldEqual` 10
       b `shouldEqual` 30

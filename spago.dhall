@@ -3,6 +3,7 @@
   [ "effect"
   , "free"
   , "maybe"
+  , "mmorph"
   , "prelude"
   , "st"
   , "tailrec"

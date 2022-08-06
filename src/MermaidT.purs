@@ -6,9 +6,12 @@ import Prelude
 
 import Control.Monad.Cont (class MonadTrans)
 import Control.Monad.Free (Free, liftF, runFreeM)
+import Control.Monad.Morph (class MFunctor, hoist)
+import Control.Monad.Reader.Class (class MonadAsk, ask)
 import Control.Monad.Rec.Class (class MonadRec)
 import Control.Monad.ST (Region, ST)
 import Control.Monad.ST.Class (class MonadST)
+import Control.Monad.ST.Global (Global, toEffect)
 import Control.Monad.Trans.Class (lift)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
@@ -64,6 +67,9 @@ derive newtype instance Monad (MermaidT t r)
 instance MonadTrans t => MonadST r (MermaidT t r) where
   liftST = liftPureT <<< lift
 
+instance (MonadAsk e (t (ST r))) => MonadAsk e (MermaidT t r) where
+  ask = liftPureT ask
+
 -- | Lift a `t Effect a` or fall back to a value.
 liftImpureOrT :: forall t r a. (Unit -> a) -> t Effect a -> MermaidT t r a
 liftImpureOrT fallback effect = MermaidT $ liftF $ LiftImpure fallback effect
@@ -82,19 +88,19 @@ liftPureT = MermaidT <<< liftF <<< LiftPure
 
 -- | Interpret `MermaidT` into a `t Effect`.
 runImpureT
-  :: forall t r a
+  :: forall t a
    . MonadTrans t
+  => MFunctor t
   => MonadRec (t Effect)
-  => MonadRec (t (ST r))
-  => (t (ST r) ~> t Effect)
-  -> MermaidT t r a
+  => MonadRec (t (ST Global))
+  => MermaidT t Global a
   -> t Effect a
-runImpureT transmute (MermaidT action) = runFreeM impureN action
+runImpureT (MermaidT action) = runFreeM impureN action
   where
   impureN :: MermaidF _ _ _ -> t Effect _
   impureN = case _ of
     LiftImpure _ a -> a
-    LiftPure a -> transmute a
+    LiftPure a -> hoist toEffect a
 
 -- | Interpret `MermaidT` into `t (ST r)`.
 runPureT
