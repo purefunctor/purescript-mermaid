@@ -7,11 +7,9 @@ import Control.Monad.ST (ST)
 import Control.Monad.ST.Global (Global, toEffect)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
-import Partial.Unsafe (unsafeCrashWith)
 
 data MermaidF a
-  = IsEffectful (Boolean -> a)
-  | LiftImpure (Effect a)
+  = LiftImpure (Unit -> a) (Effect a)
   | LiftPure (ST Global a)
 
 derive instance Functor MermaidF
@@ -19,20 +17,10 @@ derive instance Functor MermaidF
 type Mermaid = Free MermaidF
 
 liftImpure :: forall a. Monoid a => Effect a -> Mermaid a
-liftImpure a = do
-  isEffectful <- liftF $ IsEffectful identity
-  if isEffectful then
-    liftF $ LiftImpure a
-  else
-    liftF $ LiftPure $ pure mempty
+liftImpure = liftF <<< LiftImpure (const mempty)
 
 liftImpureMaybe :: forall a. Effect a -> Mermaid (Maybe a)
-liftImpureMaybe a = do
-  isEffectful <- liftF $ IsEffectful identity
-  if isEffectful then
-    liftF $ LiftImpure $ Just <$> a
-  else
-    liftF $ LiftPure $ pure Nothing
+liftImpureMaybe = liftF <<< LiftImpure (const Nothing) <<< map Just
 
 liftPure :: forall a. ST Global a -> Mermaid a
 liftPure = liftF <<< LiftPure
@@ -42,8 +30,7 @@ runImpure = runFreeM impureN
   where
   impureN :: MermaidF _ -> Effect _
   impureN = case _ of
-    IsEffectful k -> pure (k true)
-    LiftImpure a -> a
+    LiftImpure _ a -> a
     LiftPure a -> toEffect a
 
 runPure :: forall a. Mermaid a -> ST Global a
@@ -51,6 +38,5 @@ runPure = runFreeM pureN
   where
   pureN :: MermaidF _ -> ST Global _
   pureN = case _ of
-    IsEffectful k -> pure (k false)
-    LiftImpure _ -> unsafeCrashWith "Invalid!"
+    LiftImpure f _ -> pure $ f unit
     LiftPure a -> a

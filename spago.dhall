@@ -3,7 +3,6 @@
   [ "effect"
   , "free"
   , "maybe"
-  , "partial"
   , "prelude"
   , "st"
   ]
