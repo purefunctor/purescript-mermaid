@@ -1,7 +1,6 @@
 { name = "mermaid"
 , dependencies =
-  [ "control"
-  , "effect"
+  [ "effect"
   , "free"
   , "maybe"
   , "partial"
