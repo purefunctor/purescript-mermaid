@@ -29,7 +29,7 @@ liftImpure a = do
   else
     liftF $ LiftPure $ pure mempty
 
-liftPure :: forall a. Monoid a => ST Global a -> Mermaid a
+liftPure :: forall a. ST Global a -> Mermaid a
 liftPure = liftF <<< LiftPure
 
 runImpure :: Mermaid Unit -> Effect Unit

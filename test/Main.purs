@@ -20,7 +20,7 @@ import Test.Spec.Runner (runSpec)
 pureImpure :: STRef Global Int -> Ref Int -> Mermaid Unit
 pureImpure stRef efRef = Mermaid.do
   liftPure do
-    void $ STRef.write 10000 stRef
+    STRef.write 10000 stRef
   liftImpure do
     Ref.write 10000 efRef
 
