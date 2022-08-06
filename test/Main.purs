@@ -31,7 +31,7 @@ main = launchAff_ $ runSpec [ consoleReporter ] do
         stRef <- toEffect $ STRef.new 0
         efRef <- Ref.new 0
 
-        runPure $ pureImpure stRef efRef
+        toEffect $ runPure $ pureImpure stRef efRef
 
         stVal <- toEffect $ STRef.read stRef
         efVal <- Ref.read efRef

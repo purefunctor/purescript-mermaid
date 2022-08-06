@@ -46,11 +46,11 @@ runImpure = runFreeM impureN
     LiftImpure a -> a
     LiftPure a -> toEffect a
 
-runPure :: forall a. Mermaid a -> Effect a
+runPure :: forall a. Mermaid a -> ST Global a
 runPure = runFreeM pureN
   where
-  pureN :: MermaidF _ -> Effect _
+  pureN :: MermaidF _ -> ST Global _
   pureN = case _ of
     IsEffectful k -> pure (k false)
     LiftImpure _ -> unsafeCrashWith "Invalid!"
-    LiftPure a -> toEffect a
+    LiftPure a -> a
