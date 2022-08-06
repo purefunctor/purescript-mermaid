@@ -77,26 +77,15 @@ runImpureT
    . MonadTrans t
   => MonadRec (t Effect)
   => MonadRec (t (ST Global))
-  => (forall m. t m ~> m)
+  => (t (ST Global) ~> t Effect)
   -> MermaidT t a
   -> t Effect a
-runImpureT runT (MermaidT action) = runFreeM impureN action
+runImpureT transmute (MermaidT action) = runFreeM impureN action
   where
   impureN :: MermaidF _ _ -> t Effect _
   impureN = case _ of
     LiftImpure _ a -> a
-    LiftPure a -> lift $ toEffect $ runT a
-
--- | Interpret `MermaidT` into `Effect`.
-runImpureT'
-  :: forall t a
-   . MonadTrans t
-  => MonadRec (t Effect)
-  => MonadRec (t (ST Global))
-  => (forall m. t m ~> m)
-  -> MermaidT t a
-  -> Effect a
-runImpureT' runT = runT <<< runImpureT runT
+    LiftPure a -> transmute a
 
 -- | Interpret `MermaidT` into `t (ST Global)`.
 runPureT
@@ -111,13 +100,3 @@ runPureT (MermaidT action) = runFreeM pureN action
   pureN = case _ of
     LiftImpure f _ -> pure $ f unit
     LiftPure a -> a
-
--- | Interpret `MermaidT` into `ST Global`.
-runPureT'
-  :: forall t a
-   . MonadRec (t Effect)
-  => MonadRec (t (ST Global))
-  => (forall m. t m ~> m)
-  -> MermaidT t a
-  -> ST Global a
-runPureT' = (_ <<< runPureT)
