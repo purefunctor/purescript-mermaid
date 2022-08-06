@@ -1,15 +1,13 @@
 { name = "mermaid"
 , dependencies =
-  [ "aff"
-  , "control"
+  [ "control"
   , "effect"
   , "free"
+  , "maybe"
   , "partial"
   , "prelude"
-  , "refs"
-  , "spec"
   , "st"
   ]
 , packages = ./packages.dhall
-, sources = [ "src/**/*.purs", "test/**/*.purs" ]
+, sources = [ "src/**/*.purs" ]
 }
