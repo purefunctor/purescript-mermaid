@@ -1,10 +1,14 @@
 { name = "mermaid"
 , dependencies =
-  [ "effect"
+  [ "bolson"
+  , "effect"
   , "free"
+  , "hyrule"
   , "maybe"
   , "prelude"
+  , "profunctor"
   , "st"
+  , "unsafe-coerce"
   ]
 , packages = ./packages.dhall
 , sources = [ "src/**/*.purs" ]
