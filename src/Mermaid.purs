@@ -56,9 +56,6 @@ derive newtype instance Monad (Mermaid r)
 instance MonadST r (Mermaid r) where
   liftST = liftPure
 
-instance (MonadAsk e (ST r)) => MonadAsk e (Mermaid r) where
-  ask = liftPure ask
-
 -- | Lift a `Effect a` or fall back to a value.
 liftImpureOr :: forall r a. (Unit -> a) -> Effect a -> Mermaid r a
 liftImpureOr fallback effect = Mermaid $ liftF $ LiftImpure fallback effect
