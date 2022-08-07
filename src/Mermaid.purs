@@ -4,7 +4,6 @@ module Mermaid where
 import Prelude
 
 import Control.Monad.Free (Free, liftF, runFreeM)
-import Control.Monad.Reader.Class (class MonadAsk, ask)
 import Control.Monad.ST (Region, ST)
 import Control.Monad.ST.Class (class MonadST)
 import Control.Monad.ST.Global (Global, toEffect)
