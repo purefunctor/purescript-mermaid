@@ -63,30 +63,35 @@ data RunMermaid r a
   | LiftST (ST r (Unit -> RunMermaid r a))
   | Stop a
 
+-- | Lift an `Effect` to `Mermaid`, returning `mempty` when omitted.
 liftImpure :: forall r a. Monoid a => Effect a -> Mermaid r a
 liftImpure m = Mermaid
   ( mkFn3 \lfEf _ done ->
       runFn2 lfEf (\_ -> done mempty) (map (\a _ -> done a) m)
   )
 
+-- | Lift an `Effect` to `Mermaid`, returning an `a` when omitted.
 liftImpureOr :: forall r a. (Unit -> a) -> Effect a -> Mermaid r a
 liftImpureOr f m = Mermaid
   ( mkFn3 \lfEf _ done ->
       runFn2 lfEf (\_ -> done (f unit)) (map (\a _ -> done a) m)
   )
 
+-- | Lift an `Effect` to `Mermaid`, returning `Nothing` when omitted.
 liftImpureMaybe :: forall r a. Effect a -> Mermaid r (Maybe a)
 liftImpureMaybe m = Mermaid
   ( mkFn3 \lfEf _ done ->
       runFn2 lfEf (\_ -> done Nothing) (map (\a _ -> done (Just a)) m)
   )
 
+-- | Lift an `ST r` to `Mermaid`.
 liftPure :: forall r a. ST r a -> Mermaid r a
 liftPure m = Mermaid
   ( mkFn3 \_ lfSt done ->
       lfSt (map (\a _ -> done a) m)
   )
 
+-- | Interpret `Mermaid` as an `Effect`.
 runImpure :: forall a. Mermaid Global a -> Effect a
 runImpure (Mermaid m) =
   let
@@ -98,6 +103,7 @@ runImpure (Mermaid m) =
     tailRecM go \_ ->
       runFn3 m (mkFn2 \f e -> LiftEffect f e) LiftST Stop
 
+-- | Interpret `Mermaid` as an `ST`, omitting `Effect`.
 runPure :: forall r a. Mermaid r a -> ST r a
 runPure (Mermaid m) =
   let
