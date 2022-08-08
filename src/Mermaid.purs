@@ -1,96 +1,110 @@
--- | A free monad for omitting impure computations.
-module Mermaid where
+module Mermaid
+  ( Mermaid
+  , liftImpure
+  , liftImpureMaybe
+  , liftImpureOr
+  , liftPure
+  , runImpure
+  , runPure
+  )
+  where
 
 import Prelude
 
-import Control.Monad.Free (Free, liftF, runFreeM)
+import Control.Monad.Rec.Class (Step(..), tailRecM)
 import Control.Monad.ST (Region, ST)
 import Control.Monad.ST.Class (class MonadST)
 import Control.Monad.ST.Global (Global, toEffect)
+import Data.Function.Uncurried (Fn2, Fn3, mkFn2, mkFn3, runFn2, runFn3)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 
--- | The core of the `Mermaid` free monad.
--- |
--- | Parameters:
--- |
--- | * r : Region
--- | + The `ST` region.
--- |
--- | * a : Type
--- | + The type of the result.
--- |
--- | Constructors:
--- |
--- | * LiftImpure (Unit -> a) (Effect a)
--- | + A `lift` instruction that either runs an `Effect` or falls back
--- |   to a default value if the `Mermaid` is interpreted into `ST`.
--- |
--- | * LiftPure (ST r a)
--- | + A `lift` instruction that runs an `ST r`.
-data MermaidF :: Region -> Type -> Type
-data MermaidF r a
-  = LiftImpure (Unit -> a) (Effect a)
-  | LiftPure (ST r a)
+-- | A monad for omitting impure computations.
+newtype Mermaid :: Region -> Type -> Type
+newtype Mermaid r a = Mermaid
+  ( forall k. Fn3 (Fn2 (Unit -> k) (Effect (Unit -> k)) k) (ST r (Unit -> k) -> k) (a -> k) k
+  )
 
-derive instance Functor (MermaidF r)
+instance Functor (Mermaid r) where
+  map f (Mermaid m) = Mermaid
+    ( mkFn3 \lfEf lfSt done -> runFn3 m lfEf lfSt \a -> done (f a)
+    )
 
--- | A free monad for omitting impure computations.
--- |
--- | Parameters:
--- |
--- | * r : Region
--- | + The `ST` region.
--- |
--- | * a : Type
--- | + The type of the result.
-newtype Mermaid r a = Mermaid (Free (MermaidF r) a)
+instance Apply (Mermaid r) where
+  apply (Mermaid mf) (Mermaid ma) = Mermaid
+    ( mkFn3 \lfEf lfSt done ->
+        runFn3 mf lfEf lfSt \f ->
+          runFn3 ma lfEf lfSt \a ->
+            done (f a)
+    )
 
-derive newtype instance Functor (Mermaid r)
-derive newtype instance Apply (Mermaid r)
-derive newtype instance Applicative (Mermaid r)
-derive newtype instance Bind (Mermaid r)
-derive newtype instance Monad (Mermaid r)
+instance Applicative (Mermaid r) where
+  pure a = Mermaid
+    ( mkFn3 \_ _ done -> done a
+    )
+
+instance Bind (Mermaid r) where
+  bind (Mermaid m) f = Mermaid
+    ( mkFn3 \lfEf lfSt done ->
+        runFn3 m lfEf lfSt \a ->
+          case f a of
+            Mermaid n ->
+              runFn3 n lfEf lfSt \b ->
+                done b
+    )
+
+instance Monad (Mermaid r)
 
 instance MonadST r (Mermaid r) where
   liftST = liftPure
 
--- | Lift a `Effect a` or fall back to a value.
-liftImpureOr :: forall r a. (Unit -> a) -> Effect a -> Mermaid r a
-liftImpureOr fallback effect = Mermaid $ liftF $ LiftImpure fallback effect
+data RunMermaid r a
+  = LiftEffect (Unit -> RunMermaid r a) (Effect (Unit -> RunMermaid r a))
+  | LiftST (ST r (Unit -> RunMermaid r a))
+  | Stop a
 
--- | Lift a `Effect a` or fall back to `mempty`.
 liftImpure :: forall r a. Monoid a => Effect a -> Mermaid r a
-liftImpure = Mermaid <<< liftF <<< LiftImpure (const mempty)
+liftImpure m = Mermaid
+  ( mkFn3 \lfEf _ done ->
+      runFn2 lfEf (\_ -> done mempty) (map (\a _ -> done a) m)
+  )
 
--- | Lift a `Effect a` or fall back to `Nothing`.
-liftImpureMaybe :: forall t r a. Functor (t (Effect)) => Effect a -> Mermaid r (Maybe a)
-liftImpureMaybe = Mermaid <<< liftF <<< LiftImpure (const Nothing) <<< map Just
+liftImpureOr :: forall r a. (Unit -> a) -> Effect a -> Mermaid r a
+liftImpureOr f m = Mermaid
+  ( mkFn3 \lfEf _ done ->
+      runFn2 lfEf (\_ -> done (f unit)) (map (\a _ -> done a) m)
+  )
 
--- | Lift a `ST r a`.
+liftImpureMaybe :: forall r a. Effect a -> Mermaid r (Maybe a)
+liftImpureMaybe m = Mermaid
+  ( mkFn3 \lfEf _ done ->
+      runFn2 lfEf (\_ -> done Nothing) (map (\a _ -> done (Just a)) m)
+  )
+
 liftPure :: forall r a. ST r a -> Mermaid r a
-liftPure = Mermaid <<< liftF <<< LiftPure
+liftPure m = Mermaid
+  ( mkFn3 \_ lfSt done ->
+      lfSt (map (\a _ -> done a) m)
+  )
 
--- | Interpret `Mermaid` into a `Effect`.
-runImpure
-  :: forall a
-   . Mermaid Global a
-  -> Effect a
-runImpure (Mermaid action) = runFreeM impureN action
-  where
-  impureN :: MermaidF _ _ -> Effect _
-  impureN = case _ of
-    LiftImpure _ a -> a
-    LiftPure a -> toEffect a
+runImpure :: forall a. Mermaid Global a -> Effect a
+runImpure (Mermaid m) =
+  let
+    go step = case step unit of
+      LiftEffect _ e -> Loop <$> e
+      LiftST s -> Loop <$> toEffect s
+      Stop a -> pure $ Done a
+  in
+    tailRecM go \_ ->
+      runFn3 m (mkFn2 \f e -> LiftEffect f e) LiftST Stop
 
--- | Interpret `Mermaid` into `ST r`.
-runPure
-  :: forall r a
-   . Mermaid r a
-  -> ST r a
-runPure (Mermaid action) = runFreeM pureN action
-  where
-  pureN :: MermaidF _ _ -> ST r _
-  pureN = case _ of
-    LiftImpure f _ -> pure $ f unit
-    LiftPure a -> a
+runPure :: forall r a. Mermaid r a -> ST r a
+runPure (Mermaid m) =
+  let
+    go step = case step unit of
+      LiftEffect f _ -> go f
+      LiftST s -> Loop <$> s
+      Stop a -> pure $ Done a
+  in
+    tailRecM go \_ ->
+      runFn3 m (mkFn2 \f e -> LiftEffect f e) LiftST Stop

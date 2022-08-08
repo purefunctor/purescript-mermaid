@@ -8,7 +8,7 @@ import Control.Monad.ST.Ref as STRef
 import Effect.Class (liftEffect)
 import Effect.Ref (Ref)
 import Effect.Ref as Ref
-import Mermaid (Mermaid(..), liftImpure, liftPure, runImpure, runPure)
+import Mermaid (Mermaid, liftImpure, liftPure, runImpure, runPure)
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
 

@@ -2,12 +2,13 @@
 , dependencies =
   [ "bolson"
   , "effect"
-  , "free"
+  , "functions"
   , "hyrule"
   , "maybe"
   , "prelude"
   , "profunctor"
   , "st"
+  , "tailrec"
   , "unsafe-coerce"
   ]
 , packages = ./packages.dhall
