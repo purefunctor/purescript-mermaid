@@ -33,9 +33,11 @@ instance Functor (Mermaid r) where
 instance Apply (Mermaid r) where
   apply (Mermaid mf) (Mermaid ma) = Mermaid
     ( mkFn4 \lfEf lfSt more done ->
-        runFn4 mf lfEf lfSt more \f ->
-          runFn4 ma lfEf lfSt more \a ->
-            done (f a)
+        more \_ ->
+          runFn4 mf lfEf lfSt more \f ->
+            more \_ ->
+              runFn4 ma lfEf lfSt more \a ->
+                done (f a)
     )
 
 instance Applicative (Mermaid r) where
